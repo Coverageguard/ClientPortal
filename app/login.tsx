@@ -10,6 +10,14 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  const goToSignup = () => {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/signup';
+    } else {
+      router.push('/signup');
+    }
+  };
+
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Please enter email and password');
@@ -33,7 +41,7 @@ export default function LoginScreen() {
           <Text style={styles.subtitleText}>Workers' Compensation Verification Platform</Text>
         </View>
 
-        <TouchableOpacity style={styles.signUpButton} onPress={() => router.push('/signup')}>
+        <TouchableOpacity style={styles.signUpButton} onPress={goToSignup}>
           <Text style={styles.signUpButtonText}>Create Account</Text>
           <Text style={styles.signUpButtonSubtext}>Register your company and projects</Text>
         </TouchableOpacity>
