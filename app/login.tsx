@@ -1,6 +1,6 @@
 // Client Portal - Login Screen
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { authService } from '../src/services/supabase';
 import { useRouter } from 'expo-router';
 
@@ -20,15 +20,19 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please enter email and password');
+      alert('Please enter email and password');
       return;
     }
     setLoading(true);
     try {
       await authService.signIn(email, password);
+      if (typeof window !== 'undefined') {
+        window.location.href = '/';
+      } else {
+        router.replace('/');
+      }
     } catch (error) {
-      Alert.alert('Login Failed', error.message);
-    } finally {
+      alert('Login Failed: ' + error.message);
       setLoading(false);
     }
   };
