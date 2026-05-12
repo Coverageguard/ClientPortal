@@ -1,7 +1,7 @@
 // Client Portal - Sign Up Screen
 
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { authService } from '../src/services/supabase';
 
@@ -25,32 +25,25 @@ export default function SignUpScreen() {
 
   const handleSignUp = async () => {
     if (!email || !password || !confirmPassword || !companyName || !contactName) {
-      Alert.alert('Error', 'Please fill in all required fields');
+      alert('Please fill in all required fields');
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      alert('Passwords do not match');
       return;
     }
 
     setLoading(true);
     try {
-      const { data, error } = await authService.signUp(email, password);
-      if (error) throw error;
-
-      Alert.alert('Success!', 'Account created. Check your email to verify, then sign in.', [
-        { text: 'OK', onPress: () => {
-          if (typeof window !== 'undefined') {
-            window.location.href = '/login';
-          } else {
-            router.replace('/login');
-          }
-        }}
-      ]);
+      await authService.signUp(email, password);
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login?registered=1';
+      } else {
+        router.replace('/login');
+      }
     } catch (error) {
-      Alert.alert('Sign Up Failed', error.message);
-    } finally {
+      alert('Sign Up Failed: ' + error.message);
       setLoading(false);
     }
   };
