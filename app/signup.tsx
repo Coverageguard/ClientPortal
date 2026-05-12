@@ -15,6 +15,14 @@ export default function SignUpScreen() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  const goToLogin = () => {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    } else {
+      router.push('/login');
+    }
+  };
+
   const handleSignUp = async () => {
     if (!email || !password || !confirmPassword || !companyName || !contactName) {
       Alert.alert('Error', 'Please fill in all required fields');
@@ -32,7 +40,13 @@ export default function SignUpScreen() {
       if (error) throw error;
 
       Alert.alert('Success!', 'Account created. Check your email to verify, then sign in.', [
-        { text: 'OK', onPress: () => router.replace('/login') }
+        { text: 'OK', onPress: () => {
+          if (typeof window !== 'undefined') {
+            window.location.href = '/login';
+          } else {
+            router.replace('/login');
+          }
+        }}
       ]);
     } catch (error) {
       Alert.alert('Sign Up Failed', error.message);
@@ -50,7 +64,7 @@ export default function SignUpScreen() {
 
         <View style={styles.form}>
           <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>Start protecting your business</Text>
+          <Text style={styles.subtitle}>Register your company and projects</Text>
 
           <TextInput style={styles.input} placeholder="Email *" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" placeholderTextColor="#999" />
           <TextInput style={styles.input} placeholder="Password *" value={password} onChangeText={setPassword} secureTextEntry placeholderTextColor="#999" />
@@ -66,7 +80,7 @@ export default function SignUpScreen() {
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Already have an account? </Text>
-          <TouchableOpacity onPress={() => router.push('/login')}>
+          <TouchableOpacity onPress={goToLogin}>
             <Text style={styles.linkText}>Sign In</Text>
           </TouchableOpacity>
         </View>
