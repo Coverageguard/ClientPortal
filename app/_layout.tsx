@@ -33,11 +33,19 @@ export default function RootLayout() {
  if (!loading) {
  // Allow verify page to be public (no auth required)
  const isVerifyPage = pathname === '/verify' || pathname?.startsWith('/verify');
- 
+
  if (!session && !isVerifyPage) {
+ if (typeof window !== 'undefined') {
+ window.location.href = '/login';
+ } else {
  router.replace('/login');
+ }
  } else if (session && (pathname === '/login' || pathname === '/signup')) {
+ if (typeof window !== 'undefined') {
+ window.location.href = '/';
+ } else {
  router.replace('/');
+ }
  }
  }
  }, [session, loading, pathname]);
