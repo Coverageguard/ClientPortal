@@ -65,7 +65,7 @@ try {
  companyName: subName,
  link: link
  })
- });
+});
 } catch (emailError) {
  console.log('Email send error:', emailError);
 }
