@@ -58,7 +58,7 @@ try {
  method: 'POST',
  headers: {
  'Content-Type': 'application/json',
- 'Authorization': 'Bearer eyJhbG…yE04'
+ 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1bWNkaW5tdWlxaGNha2h1c2NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4ODA0MDgsImV4cCI6MjA5MjQ1NjQwOH0.FhFwMISNZdc9b99RdhsGE8rcPB25KSa_1xKfYY8yE04'
  },
  body: JSON.stringify({
  email: subEmail,
