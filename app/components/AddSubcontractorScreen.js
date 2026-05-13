@@ -52,24 +52,23 @@ const AddSubcontractorScreen = () => {
         console.error('Insert error:', insertError);
       }
 
-      // Try to send email via Resend (will fail in test mode but save token)
-      try {
-        await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 're_fYuNLDCZ_EurUkJNxMmJ5xK9pX34qDz71'
-          },
-          body: JSON.stringify({
-            from: 'CoverageGuard <onboarding@resend.dev>',
-            to: subEmail,
-            subject: "Worker's Compensation Verification Required - " + subName,
-            html: '<p>Please complete your verification: <a href="' + link + '">Click Here</a></p>'
-          })
-        });
-      } catch (emailError) {
-        console.log('Email send failed (expected in test mode):', emailError);
-      }
+      // Send email via Supabase Edge Function (bypasses CORS)
+try {
+ await fetch('https://rumcdinmuiqhcakhuscs.supabase.co/functions/v1/send-invite', {
+ method: 'POST',
+ headers: {
+ 'Content-Type': 'application/json',
+ 'Authorization': 'Bearer eyJhbG…yE04'
+ },
+ body: JSON.stringify({
+ email: subEmail,
+ companyName: subName,
+ link: link
+ })
+ });
+} catch (emailError) {
+ console.log('Email send error:', emailError);
+}
 
       alert('Invite sent!\n\nLink: ' + link);
       setModalVisible(false);
