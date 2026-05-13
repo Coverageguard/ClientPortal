@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { authService, clientService } from '../src/services/supabase';
+import { authService, clientService, projectService } from '../src/services/supabase';
+
 const SignUpScreen = ({ navigation }) => {
  const [email, setEmail] = useState('');
  const [password, setPassword] = useState('');
  const [confirmPassword, setConfirmPassword] = useState('');
  const [companyName, setCompanyName] = useState('');
  const [contactName, setContactName] = useState('');
+ const [projectName, setProjectName] = useState('');
  const [loading, setLoading] = useState(false);
  const router = useRouter();
 
  const handleSignUp = async () => {
  if (!email || !password || !confirmPassword || !companyName || !contactName) {
- Alert.alert('Error', 'Please fill in all fields');
+ Alert.alert('Error', 'Please fill in all required fields');
  return;
  }
 
@@ -25,11 +27,13 @@ const SignUpScreen = ({ navigation }) => {
  setLoading(true);
  try {
  const { data, error } = await authService.signUp(email, password);
- Alert.alert('Debug', 'signUp done, data: ' + JSON.stringify(data));
  if (error) throw error;
 
- await clientService.createClient(companyName, contactName, email);
- Alert.alert('Debug', 'createClient done');
+ const client = await clientService.createClient(companyName, contactName, email);
+ 
+ if (projectName && client) {
+ await projectService.createProject(client.id, projectName);
+ }
 
  Alert.alert('Success!', 'Account created. Please check your email to verify, then sign in.', [
  { text: 'OK', onPress: () => router.replace('/login') }
@@ -53,6 +57,7 @@ const SignUpScreen = ({ navigation }) => {
  <TextInput style={styles.input} placeholder="Confirm Password" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry placeholderTextColor="#999" />
  <TextInput style={styles.input} placeholder="Company Name" value={companyName} onChangeText={setCompanyName} placeholderTextColor="#999" />
  <TextInput style={styles.input} placeholder="Your Name" value={contactName} onChangeText={setContactName} placeholderTextColor="#999" />
+ <TextInput style={styles.input} placeholder="Project Name" value={projectName} onChangeText={setProjectName} placeholderTextColor="#999" />
 
  <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleSignUp} disabled={loading}>
  <Text style={styles.buttonText}>{loading ? 'Creating...' : 'Create Account'}</Text>
