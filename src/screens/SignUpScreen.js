@@ -29,12 +29,7 @@ const SignUpScreen = ({ navigation }) => {
       if (error) throw error;
 
       if (data.user) {
-        await clientService.createProfile(data.user.id, {
-          company_name: companyName,
-          contact_name: contactName,
-          email,
-          status: 'active'
-        });
+        await clientService.createClient(companyName, contactName, email);
       }
 
       Alert.alert('Success!', 'Account created. Please check your email to verify, then sign in.', [

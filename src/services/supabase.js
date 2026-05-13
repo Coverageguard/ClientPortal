@@ -31,29 +31,23 @@ export const authService = {
   }
 };
 
-// Client Profile functions
+// Client functions - uses 'clients' table
 export const clientService = {
-  createProfile: async (userId, profileData) => {
-    const { data, error } = await supabase
-      .from('client_profiles')
-      .insert([{ user_id: userId, ...profileData }])
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
-  },
-
-  getProfile: async (userId) => {
-    const { data, error } = await supabase
-      .from('client_profiles')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
-    if (error && error.code !== 'PGRST116') throw error;
-    return data;
-  }
+ createClient: async (companyName, contactName, email) => {
+   const { data, error } = await supabase
+     .from('clients')
+     .insert([{ 
+       company_name: companyName, 
+       contact_name: contactName, 
+       email: email,
+       status: 'active' 
+     }])
+     .select()
+     .single();
+   if (error) throw error;
+   return data;
+ },
 };
-
 // COI Upload functions
 export const coiService = {
   uploadCOI: async (clientId, file, fileName) => {
