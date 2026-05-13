@@ -48,6 +48,22 @@ export const clientService = {
    return data;
  },
 };
+// Project functions
+export const projectService = {
+ createProject: async (clientId, projectName) => {
+   const { data, error } = await supabase
+     .from('projects')
+     .insert([{ 
+       client_id: clientId, 
+       project_name: projectName,
+       status: 'active'
+     }])
+     .select()
+     .single();
+   if (error) throw error;
+   return data;
+ },
+};
 // COI Upload functions
 export const coiService = {
   uploadCOI: async (clientId, file, fileName) => {
