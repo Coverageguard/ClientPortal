@@ -26,18 +26,28 @@ const SignUpScreen = ({ navigation }) => {
 
  setLoading(true);
  try {
+ // Sign up the user
  const { data, error } = await authService.signUp(email, password);
  if (error) throw error;
 
+ // Create the client (GC) record
  const client = await clientService.createClient(companyName, contactName, email);
- 
+
+ // Create project if provided
  if (projectName && client) {
  await projectService.createProject(client.id, projectName);
  }
 
- Alert.alert('Success!', 'Account created. Please check your email to verify, then sign in.', [
+ // Auto-login after signup (for testing - remove in production)
+ try {
+ await authService.signIn(email, password);
+ router.replace('/');
+ } catch (loginError) {
+ // If auto-login fails, redirect to login
+ Alert.alert('Account created!', 'Please sign in to continue.', [
  { text: 'OK', onPress: () => router.replace('/login') }
  ]);
+ }
  } catch (error) {
  Alert.alert('Sign Up Failed', error.message);
  } finally {

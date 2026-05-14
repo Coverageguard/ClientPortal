@@ -19,31 +19,33 @@ const AddSubcontractorScreen = () => {
  const [selectedClient, setSelectedClient] = useState('');
  const [selectedProject, setSelectedProject] = useState('');
 
- // NEW: Auto-fetch current user's GC and projects
+ // Auto-fetch current user's GC and projects when modal opens
 useEffect(() => {
-  const fetchCurrentClient = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    
-    const { data } = await supabase
-      .from('clients')
-      .select('id, company_name')
-      .eq('email', user.email)
-      .single();
-    
-    if (data) {
-      setSelectedClient(data.id);
-      setClients([data]);
-      
-      const { data: projectData } = await supabase
-        .from('projects')
-        .select('id, project_name')
-        .eq('client_id', data.id);
-      setProjects(projectData || []);
-    }
-  };
-  fetchCurrentClient();
-}, []);
+ if (modalVisible) {
+ const fetchCurrentClient = async () => {
+ const { data: { user } } = await supabase.auth.getUser();
+ if (!user) return;
+
+ const { data } = await supabase
+ .from('clients')
+ .select('id, company_name')
+ .eq('email', user.email)
+ .single();
+
+ if (data) {
+ setSelectedClient(data.id);
+ setClients([data]);
+
+ const { data: projectData } = await supabase
+ .from('projects')
+ .select('id, project_name')
+ .eq('client_id', data.id);
+ setProjects(projectData || []);
+ }
+ };
+ fetchCurrentClient();
+ }
+}, [modalVisible]);
  // NEW: When client changes, fetch their projects
  const handleClientChange = async (clientId) => {
    setSelectedClient(clientId);
