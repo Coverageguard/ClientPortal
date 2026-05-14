@@ -3,8 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { supabase } from '../../src/services/supabase';
-
+import { supabase } from '../src/services/supabase';
 const AddSubcontractorScreen = () => {
  const router = useRouter();
  const [modalVisible, setModalVisible] = useState(false);
