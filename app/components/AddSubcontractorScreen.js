@@ -27,7 +27,7 @@ useEffect(() => {
  const { data: clientData } = await supabase
  .from('clients')
  .select('id')
- .eq('email', user.email)
+ .ilike('email', user.email)
  .single();
 
  if (clientData) {
