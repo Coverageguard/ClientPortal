@@ -17,19 +17,33 @@ const AddSubcontractorScreen = () => {
  const [projects, setProjects] = useState([]);
  const [selectedProject, setSelectedProject] = useState('');
 
- // Fetch projects when modal opens
- useEffect(() => {
+ // Fetch projects for the logged-in GC only
+useEffect(() => {
  if (modalVisible) {
  const fetchProjects = async () => {
+ const { data: { user } } = await supabase.auth.getUser();
+ if (!user) return;
+
+ const { data: clientData } = await supabase
+ .from('clients')
+ .select('id')
+ .eq('email', user.email)
+ .single();
+
+ if (clientData) {
  const { data } = await supabase
  .from('projects')
  .select('id, project_name')
+ .eq('client_id', clientData.id)
  .order('project_name');
  setProjects(data || []);
+ } else {
+ setProjects([]);
+ }
  };
  fetchProjects();
  }
- }, [modalVisible]);
+}, [modalVisible]);
 
  const handleGCUpload = () => {
  router.push('/upload');
