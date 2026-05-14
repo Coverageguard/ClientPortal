@@ -103,10 +103,11 @@ useEffect(() => {
  'Authorization': 'Bearer eyJhbG…yE04'
  },
  body: JSON.stringify({
- email: subEmail,
- companyName: subName,
- link: link
- })
+  email: subEmail,
+  companyName: subName,
+  gcCompanyName: selectedProj?.client?.company_name || "",
+  link: link
+})
  });
  } catch (emailError) {
  console.log('Email send error:', emailError);
