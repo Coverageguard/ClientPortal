@@ -122,19 +122,15 @@ const AddSubcontractorScreen = () => {
 
  // Send email via Supabase Edge Function
 try {
-  await fetch('https://rumcdinmuiqhcakhuscs.supabase.co/functions/v1/send-invite', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer eyJhbG…yE04'
-    },
-    body: JSON.stringify({
-      email: (subEmail || '').normalize('NFC'),
-      companyName: (subName || '').normalize('NFC'),
-      gcCompanyName: (gcCompanyName || '').normalize('NFC'),
+  const { data, error } = await supabase.functions.invoke('send-invite', {
+    body: {
+      email: subEmail,
+      companyName: subName,
+      gcCompanyName: gcCompanyName,
       link: link
-    })
+    }
   });
+  if (error) console.log('Function error:', error);
 } catch (emailError) {
   console.log('Email send error:', emailError);
 }
