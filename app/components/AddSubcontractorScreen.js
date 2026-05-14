@@ -16,13 +16,18 @@ const AddSubcontractorScreen = () => {
  // Project state
  const [projects, setProjects] = useState([]);
  const [selectedProject, setSelectedProject] = useState('');
+ const [gcCompanyName, setGcCompanyName] = useState('');
 
- // Fetch projects for the logged-in GC only
-useEffect(() => {
+ // Fetch projects when modal opens
+ useEffect(() => {
  if (modalVisible) {
  const fetchProjects = async () => {
  const { data: { user } } = await supabase.auth.getUser();
- if (!user) return;
+ if (!user) {
+ const { data } = await supabase.from('projects').select('id, project_name').order('project_name');
+ setProjects(data || []);
+ return;
+ }
 
  const { data: clientData } = await supabase
  .from('clients')
@@ -38,12 +43,34 @@ useEffect(() => {
  .order('project_name');
  setProjects(data || []);
  } else {
- setProjects([]);
+ const { data } = await supabase.from('projects').select('id, project_name').order('project_name');
+ setProjects(data || []);
  }
  };
  fetchProjects();
  }
-}, [modalVisible]);
+ }, [modalVisible]);
+
+ const handleProjectChange = async (projectId) => {
+ setSelectedProject(projectId);
+
+ if (projectId) {
+ const { data: projectData } = await supabase
+ .from('projects')
+ .select('client_id')
+ .eq('id', projectId)
+ .single();
+
+ if (projectData?.client_id) {
+ const { data: clientData } = await supabase
+ .from('clients')
+ .select('company_name')
+ .eq('id', projectData.client_id)
+ .single();
+ setGcCompanyName(clientData?.company_name || '');
+ }
+ }
+ };
 
  const handleGCUpload = () => {
  router.push('/upload');
@@ -73,7 +100,6 @@ useEffect(() => {
  const token = 'sub-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
  const link = 'https://coverageguard.net/verify?token=' + token;
 
- // Get the client_id from the selected project
  const selectedProj = projects.find(p => p.id === selectedProject);
  const clientId = selectedProj?.client_id;
 
@@ -103,11 +129,11 @@ useEffect(() => {
  'Authorization': 'Bearer eyJhbG…yE04'
  },
  body: JSON.stringify({
-  email: subEmail,
-  companyName: subName,
-  gcCompanyName: selectedProj?.client?.company_name || "",
-  link: link
-})
+ email: subEmail,
+ companyName: subName,
+ gcCompanyName: gcCompanyName,
+ link: link
+ })
  });
  } catch (emailError) {
  console.log('Email send error:', emailError);
@@ -120,6 +146,7 @@ useEffect(() => {
  setSubEmail('');
  setSubPhone('');
  setSelectedProject('');
+ setGcCompanyName('');
  } catch (error) {
  alert('Error: ' + error.message);
  } finally {
@@ -132,6 +159,7 @@ useEffect(() => {
  setSubEmail('');
  setSubPhone('');
  setSelectedProject('');
+ setGcCompanyName('');
  setModalVisible(false);
  };
 
@@ -185,7 +213,7 @@ useEffect(() => {
  <TouchableOpacity
  key={proj.id}
  style={[styles.chip, selectedProject === proj.id && styles.chipSelected]}
- onPress={() => setSelectedProject(proj.id)}
+ onPress={() => handleProjectChange(proj.id)}
  >
  <Text style={[styles.chipText, selectedProject === proj.id && styles.chipTextSelected]}>
  {proj.project_name}
