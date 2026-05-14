@@ -1,246 +1,153 @@
-// Client Portal - Add Subcontractor Screen
+// Client Portal - Dashboard (Home Tab)
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { Link } from 'expo-router';
 import { useRouter } from 'expo-router';
-import { supabase } from '../src/services/supabase';
-const AddSubcontractorScreen = () => {
+import { authService } from '../../src/services/supabase';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+ 'https://rumcdinmuiqhcakhuscs.supabase.co',
+ 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1bWNkaW5tdWlxaGNha2h1c2NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4ODA0MDgsImV4cCI6MjA5MjQ1NjQwOH0.FhFwMISNZdc9b99RdhsGE8rcPB25KSa_1xKfYY8yE04'
+);
+
+export default function DashboardScreen() {
+ const [profile, setProfile] = useState(null);
+ const [subs, setSubs] = useState([]);
+ const [loading, setLoading] = useState(true);
  const router = useRouter();
- const [modalVisible, setModalVisible] = useState(false);
- const [subName, setSubName] = useState('');
- const [subEmail, setSubEmail] = useState('');
- const [subPhone, setSubPhone] = useState('');
- const [sending, setSending] = useState(false);
 
- // NEW: Add dropdown state
- const [clients, setClients] = useState([]);
- const [projects, setProjects] = useState([]);
- const [selectedClient, setSelectedClient] = useState('');
- const [selectedProject, setSelectedProject] = useState('');
-
- // NEW: Auto-fetch current user's GC and projects
  useEffect(() => {
- const fetchCurrentClient = async () => {
+ const checkAuth = async () => {
  const { data: { user } } = await supabase.auth.getUser();
- if (!user) return;
-
- const { data } = await supabase
- .from('clients')
- .select('id, company_name')
- .eq('email', user.email)
- .single();
-
- if (data) {
- setSelectedClient(data.id);
- setClients([data]);
-
- const { data: projectData } = await supabase
- .from('projects')
- .select('id, project_name')
- .eq('client_id', data.id);
- setProjects(projectData || []);
+ if (!user) {
+ router.replace('/login');
+ return;
  }
+ loadData();
  };
- fetchCurrentClient();
+ checkAuth();
  }, []);
 
- // NEW: When client changes, fetch their projects
- const handleClientChange = async (clientId) => {
- setSelectedClient(clientId);
- setSelectedProject('');
- if (clientId) {
- const { data } = await supabase.from('projects').select('id, project_name').eq('client_id', clientId);
- setProjects(data || []);
- } else {
- setProjects([]);
- }
- };
-
- const handleGCUpload = () => {
- router.push('/upload');
- };
-
- const handleSendLink = () => {
- setModalVisible(true);
- };
-
- const handleSendInvite = async () => {
- if (!selectedClient) {
- alert('Please select a GC (General Contractor)');
- return;
- }
- if (!selectedProject) {
- alert('Please select a Project');
- return;
- }
- if (!subName.trim()) {
- alert('Company name is required');
- return;
- }
- if (!subEmail.trim() && !subPhone.trim()) {
- alert('Email or phone number is required');
- return;
- }
-
- setSending(true);
-
+ const loadData = async () => {
+ setLoading(true);
  try {
- const token = 'sub-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
- const link = 'https://coverageguard.net/verify?token=' + token;
+ const { data: { user } } = await supabase.auth.getUser();
 
- const { error: insertError } = await supabase
+ const { data: subcontractors } = await supabase
  .from('subcontractors')
- .insert({
- company_name: subName,
- email: subEmail,
- phone: subPhone,
- invite_token: token,
- client_id: selectedClient,
- project_id: selectedProject,
- verification_status: 'MANUAL_REVIEW',
- created_at: new Date().toISOString()
- });
+ .select('*');
 
- if (insertError) {
- console.error('Insert error:', insertError);
+ setSubs(subcontractors || []);
+
+ if (user) {
+ setProfile({ company_name: user.email });
  }
-
- // Send email via Supabase Edge Function (bypasses CORS)
- try {
- await fetch('https://rumcdinmuiqhcakhuscs.supabase.co/functions/v1/send-invite', {
- method: 'POST',
- headers: {
- 'Content-Type': 'application/json',
- 'Authorization': 'Bearer eyJhbG…yE04'
- },
- body: JSON.stringify({
- email: subEmail,
- companyName: subName,
- link: link
- })
- });
- } catch (emailError) {
- console.log('Email send error:', emailError);
- }
-
- alert('Invite sent!\n\nLink: ' + link);
- setModalVisible(false);
- router.push('/');
- setSubName('');
- setSubEmail('');
- setSubPhone('');
- setSelectedClient('');
- setSelectedProject('');
  } catch (error) {
- alert('Error: ' + error.message);
+ console.error('Error loading data:', error);
  } finally {
- setSending(false);
+ setLoading(false);
  }
  };
-
- // Helper to reset form
- const resetForm = () => {
- setSubName('');
- setSubEmail('');
- setSubPhone('');
- setSelectedClient('');
- setSelectedProject('');
- setProjects([]);
- setModalVisible(false);
+ const handleLogout = async () => {
+ await authService.signOut();
+ router.replace('/login');
  };
+
+ const totalSubs = subs.length;
+ const pendingCount = subs.filter(s => s.verification_status === 'PENDING' || s.verification_status === 'MANUAL_REVIEW' || !s.verification_status).length;
+ const issueCount = subs.filter(s => s.verification_status === 'issue' || s.verification_status === 'ISSUE' || s.verification_status === 'expired' || s.verification_status === 'EXPIRED').length;
+ const verifiedCount = subs.filter(s => s.verification_status === 'verified' || s.verification_status === 'VERIFIED' || s.verification_status === 'ACTIVE').length;
 
  return (
  <View style={styles.container}>
  <View style={styles.header}>
- <TouchableOpacity onPress={() => router.back()}>
- <Text style={styles.backText}>← Back</Text>
+ <View>
+ <Text style={styles.headerTitle}>Dashboard</Text>
+ <Text style={styles.headerSubtitle}>{profile?.company_name || 'Client'}</Text>
+ </View>
+ <TouchableOpacity onPress={handleLogout}>
+ <Text style={styles.logoutText}>Logout</Text>
  </TouchableOpacity>
- <Text style={styles.headerTitle}>Add Subcontractor</Text>
- <View style={{ width: 50 }} />
  </View>
 
- <ScrollView style={styles.content}>
- <Text style={styles.subtitle}>Choose how to add a subcontractor:</Text>
-
- <TouchableOpacity style={styles.optionCard} onPress={handleSendLink}>
- <View style={styles.optionIcon}><Text style={styles.iconText}>📧</Text></View>
- <View style={styles.optionContent}>
- <Text style={styles.optionTitle}>Send Invite Link</Text>
- <Text style={styles.optionDesc}>We'll email them a link to upload their COI directly.</Text>
+ <View style={styles.logoContainer}>
+ <Image source={require('../../assets/logo.png')} style={styles.logoImage} />
  </View>
- <Text style={styles.arrow}>›</Text>
- </TouchableOpacity>
 
- <TouchableOpacity style={styles.optionCard} onPress={handleGCUpload}>
- <View style={styles.optionIcon}><Text style={styles.iconText}>📤</Text></View>
- <View style={styles.optionContent}>
- <Text style={styles.optionTitle}>Upload COI for Them</Text>
- <Text style={styles.optionDesc}>If they can't do it themselves, you can upload their COI.</Text>
+ <View style={styles.statsContainer}>
+ <View style={styles.statCard}>
+ <Text style={styles.statNumber}>{totalSubs}</Text>
+ <Text style={styles.statLabel}>Total Subs</Text>
  </View>
- <Text style={styles.arrow}>›</Text>
- </TouchableOpacity>
-
- <View style={styles.helpBox}>
- <Text style={styles.helpTitle}>Need Help?</Text>
- <Text style={styles.helpText}>Call us at (555) 123-4567 for assisted onboarding.</Text>
- </View>
- </ScrollView>
-
- <Modal visible={modalVisible} animationType="slide" transparent>
- <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
- <ScrollView contentContainerStyle={styles.modalScroll}>
- <View style={styles.modalContent}>
- <Text style={styles.modalTitle}>Send Invite Link</Text>
-
- <Text style={styles.label}>Select GC *</Text>
- <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
- {clients.map(client => (
- <TouchableOpacity
- key={client.id}
- style={[styles.chip, selectedClient === client.id && styles.chipSelected]}
- onPress={() => handleClientChange(client.id)}
- >
- <Text style={[styles.chipText, selectedClient === client.id && styles.chipTextSelected]}>
- {client.company_name}
+ <View style={styles.statCard}>
+ <Text style={[styles.statNumber, { color: '#d69e2e' }]}>
+ {pendingCount}
  </Text>
- </TouchableOpacity>
- ))}
- </ScrollView>
-
- {selectedClient ? (
- <>
- <Text style={styles.label}>Select Project *</Text>
- <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
- {projects.map(proj => (
- <TouchableOpacity
- key={proj.id}
- style={[styles.chip, selectedProject === proj.id && styles.chipSelected]}
- onPress={() => setSelectedProject(proj.id)}
- >
- <Text style={[styles.chipText, selectedProject === proj.id && styles.chipTextSelected]}>
- {proj.project_name}
- </Text>
- </TouchableOpacity>
- ))}
- </ScrollView>
- </>
- ) : null}
-
- <TextInput style={styles.input} placeholder="Company Name *" value={subName} onChangeText={setSubName} placeholderTextColor="#999" />
- <TextInput style={styles.input} placeholder="Email Address" value={subEmail} onChangeText={setSubEmail} keyboardType="email-address" autoCapitalize="none" placeholderTextColor="#999" />
- <TextInput style={styles.input} placeholder="Phone Number" value={subPhone} onChangeText={setSubPhone} keyboardType="phone-pad" placeholderTextColor="#999" />
-
- <TouchableOpacity style={[styles.sendBtn, sending && styles.sendBtnDisabled]} onPress={handleSendInvite} disabled={sending}>
- {sending ? <ActivityIndicator color="#fff" /> : <Text style={styles.sendBtnText}>📤 Send Invite Link</Text>}
- </TouchableOpacity>
-
- <TouchableOpacity style={styles.cancelBtn} onPress={resetForm}>
- <Text style={styles.cancelBtnText}>Cancel</Text>
- </TouchableOpacity>
+ <Text style={styles.statLabel}>Pending</Text>
  </View>
- </ScrollView>
- </KeyboardAvoidingView>
- </Modal>
+ <View style={styles.statCard}>
+ <Text style={[styles.statNumber, { color: '#e53e3e' }]}>
+ {issueCount}
+ </Text>
+ <Text style={styles.statLabel}>Issues</Text>
+ </View>
+ <View style={styles.statCard}>
+ <Text style={[styles.statNumber, { color: '#38a169' }]}>
+ {verifiedCount}
+ </Text>
+ <Text style={styles.statLabel}>Verified</Text>
+ </View>
+ </View>
+
+ <View style={styles.actionsContainer}>
+ <Link href="/add-subcontractor" asChild>
+ <TouchableOpacity style={styles.actionButton}>
+ <Text style={styles.actionIcon}>📤</Text>
+ <Text style={styles.actionText}>Add Sub</Text>
+ </TouchableOpacity>
+</Link>
+
+ <Link href="/reports" asChild>
+ <TouchableOpacity style={styles.actionButton}>
+ <Text style={styles.actionIcon}>📊</Text>
+ <Text style={styles.actionText}>Reports</Text>
+ </TouchableOpacity>
+ </Link>
+
+ <Link href="/messages" asChild>
+ <TouchableOpacity style={styles.actionButton}>
+ <Text style={styles.actionIcon}>🔔</Text>
+ <Text style={styles.actionText}>Alerts</Text>
+ </TouchableOpacity>
+ </Link>
+
+ <Link href="/settings" asChild>
+ <TouchableOpacity style={styles.actionButton}>
+ <Text style={styles.actionIcon}>⚙️</Text>
+ <Text style={styles.actionText}>Settings</Text>
+ </TouchableOpacity>
+ </Link>
+ </View>
  </View>
  );
-};
+}
+
+const styles = StyleSheet.create({
+ container: { flex: 1, backgroundColor: '#f7fafc' },
+ header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#1a365d' },
+ headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#fff' },
+ headerSubtitle: { fontSize: 14, color: '#a0aec0', marginTop: 2 },
+ logoutText: { color: '#d69e2e', fontSize: 14, fontWeight: '500' },
+ logoContainer: { padding: 16 },
+ logoImage: { width: 380, height: 160, resizeMode: 'contain', alignSelf: 'center' },
+ statsContainer: { flexDirection: 'row', padding: 16, backgroundColor: '#1a365d' },
+ statCard: { flex: 1, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: 16, marginHorizontal: 4, alignItems: 'center' },
+ statNumber: { fontSize: 28, fontWeight: 'bold', color: '#fff' },
+ statLabel: { fontSize: 12, color: '#a0aec0', marginTop: 4 },
+ actionsContainer: { flexDirection: 'row', padding: 20, justifyContent: 'space-around', backgroundColor: '#fff', marginTop: 8 },
+ actionButton: { alignItems: 'center', padding: 12 },
+ actionIcon: { fontSize: 28, marginBottom: 4 },
+ actionText: { fontSize: 12, color: '#4a5568', fontWeight: '500' },
+});
