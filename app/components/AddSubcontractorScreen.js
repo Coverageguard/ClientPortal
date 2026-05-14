@@ -38,12 +38,12 @@ const AddSubcontractorScreen = () => {
  if (clientData) {
  const { data } = await supabase
  .from('projects')
- .select('id, project_name')
+ .select('id, project_name, client_id')
  .eq('client_id', clientData.id)
  .order('project_name');
  setProjects(data || []);
  } else {
- const { data } = await supabase.from('projects').select('id, project_name').order('project_name');
+ const { data } = await supabase.from('projects').select('id, project_name, client_id').order('project_name');
  setProjects(data || []);
  }
  };
