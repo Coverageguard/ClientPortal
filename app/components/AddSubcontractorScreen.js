@@ -121,23 +121,23 @@ const AddSubcontractorScreen = () => {
  }
 
  // Send email via Supabase Edge Function
- try {
- await fetch('https://rumcdinmuiqhcakhuscs.supabase.co/functions/v1/send-invite', {
- method: 'POST',
- headers: {
- 'Content-Type': 'application/json',
- 'Authorization': 'Bearer eyJhbG…yE04'
- },
- body: JSON.stringify({
-  email: (subEmail || '').normalize('NFC'),
-  companyName: (subName || '').normalize('NFC'),
-  gcCompanyName: (gcCompanyName || '').normalize('NFC'),
-  link: link
-})
- } catch (emailError) {
- console.log('Email send error:', emailError);
- }
-
+try {
+  await fetch('https://rumcdinmuiqhcakhuscs.supabase.co/functions/v1/send-invite', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer eyJhbG…yE04'
+    },
+    body: JSON.stringify({
+      email: (subEmail || '').normalize('NFC'),
+      companyName: (subName || '').normalize('NFC'),
+      gcCompanyName: (gcCompanyName || '').normalize('NFC'),
+      link: link
+    })
+  });
+} catch (emailError) {
+  console.log('Email send error:', emailError);
+}
  alert('Invite sent!\n\nLink: ' + link);
  setModalVisible(false);
  router.push('/');
