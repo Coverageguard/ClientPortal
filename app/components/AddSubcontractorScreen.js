@@ -13,35 +13,23 @@ const AddSubcontractorScreen = () => {
  const [subPhone, setSubPhone] = useState('');
  const [sending, setSending] = useState(false);
 
- // NEW: Add dropdown state
- const [clients, setClients] = useState([]);
+ // Project state
  const [projects, setProjects] = useState([]);
- const [selectedClient, setSelectedClient] = useState('');
  const [selectedProject, setSelectedProject] = useState('');
 
- // Auto-fetch current user's GC and projects when modal opens
-useEffect(() => {
- // Fetch all clients for now (user can pick their company)
- const fetchClients = async () => {
+ // Fetch projects when modal opens
+ useEffect(() => {
+ if (modalVisible) {
+ const fetchProjects = async () => {
  const { data } = await supabase
- .from('clients')
- .select('id, company_name')
- .order('company_name');
- setClients(data || []);
+ .from('projects')
+ .select('id, project_name')
+ .order('project_name');
+ setProjects(data || []);
  };
- fetchClients();
-}, []);
- // NEW: When client changes, fetch their projects
- const handleClientChange = async (clientId) => {
-   setSelectedClient(clientId);
-   setSelectedProject('');
-   if (clientId) {
-     const { data } = await supabase.from('projects').select('id, project_name').eq('client_id', clientId);
-     setProjects(data || []);
-   } else {
-     setProjects([]);
-   }
- };
+ fetchProjects();
+ }
+ }, [modalVisible]);
 
  const handleGCUpload = () => {
  router.push('/upload');
@@ -52,10 +40,6 @@ useEffect(() => {
  };
 
  const handleSendInvite = async () => {
- if (!selectedClient) {
- alert('Please select a GC (General Contractor)');
- return;
- }
  if (!selectedProject) {
  alert('Please select a Project');
  return;
@@ -75,6 +59,10 @@ useEffect(() => {
  const token = 'sub-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
  const link = 'https://coverageguard.net/verify?token=' + token;
 
+ // Get the client_id from the selected project
+ const selectedProj = projects.find(p => p.id === selectedProject);
+ const clientId = selectedProj?.client_id;
+
  const { error: insertError } = await supabase
  .from('subcontractors')
  .insert({
@@ -82,7 +70,7 @@ useEffect(() => {
  email: subEmail,
  phone: subPhone,
  invite_token: token,
- client_id: selectedClient,
+ client_id: clientId,
  project_id: selectedProject,
  verification_status: 'MANUAL_REVIEW',
  created_at: new Date().toISOString()
@@ -92,7 +80,7 @@ useEffect(() => {
  console.error('Insert error:', insertError);
  }
 
- // Send email via Supabase Edge Function (bypasses CORS)
+ // Send email via Supabase Edge Function
  try {
  await fetch('https://rumcdinmuiqhcakhuscs.supabase.co/functions/v1/send-invite', {
  method: 'POST',
@@ -112,11 +100,10 @@ useEffect(() => {
 
  alert('Invite sent!\n\nLink: ' + link);
  setModalVisible(false);
-router.push('/');
+ router.push('/');
  setSubName('');
  setSubEmail('');
  setSubPhone('');
- setSelectedClient('');
  setSelectedProject('');
  } catch (error) {
  alert('Error: ' + error.message);
@@ -125,15 +112,12 @@ router.push('/');
  }
  };
 
- // Helper to reset form
  const resetForm = () => {
-   setSubName('');
-   setSubEmail('');
-   setSubPhone('');
-   setSelectedClient('');
-   setSelectedProject('');
-   setProjects([]);
-   setModalVisible(false);
+ setSubName('');
+ setSubEmail('');
+ setSubPhone('');
+ setSelectedProject('');
+ setModalVisible(false);
  };
 
  return (
@@ -179,41 +163,21 @@ router.push('/');
  <View style={styles.modalContent}>
  <Text style={styles.modalTitle}>Send Invite Link</Text>
 
- {/* NEW: GC Dropdown */}
- <Text style={styles.label}>Select GC *</Text>
+ {/* Project Dropdown */}
+ <Text style={styles.label}>Select Project *</Text>
  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
- {clients.map(client => (
-   <TouchableOpacity 
-     key={client.id} 
-     style={[styles.chip, selectedClient === client.id && styles.chipSelected]}
-     onPress={() => handleClientChange(client.id)}
-   >
-     <Text style={[styles.chipText, selectedClient === client.id && styles.chipTextSelected]}>
-       {client.company_name}
-     </Text>
-   </TouchableOpacity>
+ {projects.map(proj => (
+ <TouchableOpacity
+ key={proj.id}
+ style={[styles.chip, selectedProject === proj.id && styles.chipSelected]}
+ onPress={() => setSelectedProject(proj.id)}
+ >
+ <Text style={[styles.chipText, selectedProject === proj.id && styles.chipTextSelected]}>
+ {proj.project_name}
+ </Text>
+ </TouchableOpacity>
  ))}
  </ScrollView>
-
- {/* NEW: Project Dropdown */}
- {selectedClient ? (
-   <>
-   <Text style={styles.label}>Select Project *</Text>
-   <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
-     {projects.map(proj => (
-       <TouchableOpacity 
-         key={proj.id} 
-         style={[styles.chip, selectedProject === proj.id && styles.chipSelected]}
-         onPress={() => setSelectedProject(proj.id)}
-       >
-         <Text style={[styles.chipText, selectedProject === proj.id && styles.chipTextSelected]}>
-           {proj.project_name}
-         </Text>
-       </TouchableOpacity>
-     ))}
-   </ScrollView>
-   </>
- ) : null}
 
  <TextInput style={styles.input} placeholder="Company Name *" value={subName} onChangeText={setSubName} placeholderTextColor="#999" />
  <TextInput style={styles.input} placeholder="Email Address" value={subEmail} onChangeText={setSubEmail} keyboardType="email-address" autoCapitalize="none" placeholderTextColor="#999" />
