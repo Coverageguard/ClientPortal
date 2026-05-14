@@ -129,12 +129,11 @@ const AddSubcontractorScreen = () => {
  'Authorization': 'Bearer eyJhbG…yE04'
  },
  body: JSON.stringify({
- email: subEmail,
- companyName: subName,
- gcCompanyName: gcCompanyName,
- link: link
- })
- });
+  email: (subEmail || '').normalize('NFC'),
+  companyName: (subName || '').normalize('NFC'),
+  gcCompanyName: (gcCompanyName || '').normalize('NFC'),
+  link: link
+})
  } catch (emailError) {
  console.log('Email send error:', emailError);
  }
