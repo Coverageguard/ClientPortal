@@ -21,31 +21,16 @@ const AddSubcontractorScreen = () => {
 
  // Auto-fetch current user's GC and projects when modal opens
 useEffect(() => {
- if (modalVisible) {
- const fetchCurrentClient = async () => {
- const { data: { user } } = await supabase.auth.getUser();
- if (!user) return;
-
+ // Fetch all clients for now (user can pick their company)
+ const fetchClients = async () => {
  const { data } = await supabase
  .from('clients')
  .select('id, company_name')
- .eq('email', user.email)
- .single();
-
- if (data) {
- setSelectedClient(data.id);
- setClients([data]);
-
- const { data: projectData } = await supabase
- .from('projects')
- .select('id, project_name')
- .eq('client_id', data.id);
- setProjects(projectData || []);
- }
+ .order('company_name');
+ setClients(data || []);
  };
- fetchCurrentClient();
- }
-}, [modalVisible]);
+ fetchClients();
+}, []);
  // NEW: When client changes, fetch their projects
  const handleClientChange = async (clientId) => {
    setSelectedClient(clientId);
