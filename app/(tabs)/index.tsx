@@ -19,20 +19,28 @@ export default function DashboardScreen() {
  const router = useRouter();
 
  useEffect(() => {
+ const checkAuth = async () => {
+ const { data: { user } } = await supabase.auth.getUser();
+ if (!user) {
+ router.replace('/login');
+ return;
+ }
  loadData();
+ };
+ checkAuth();
  }, []);
 
  const loadData = async () => {
  setLoading(true);
  try {
  const { data: { user } } = await supabase.auth.getUser();
- 
+
  const { data: subcontractors } = await supabase
  .from('subcontractors')
  .select('*');
- 
+
  setSubs(subcontractors || []);
- 
+
  if (user) {
  setProfile({ company_name: user.email });
  }
