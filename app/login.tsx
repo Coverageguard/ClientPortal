@@ -1,83 +1,247 @@
-// Client Portal - Login Screen
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
-import { authService } from '../src/services/supabase';
+// Client Portal - Add Subcontractor Screen
+
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
+import { supabase } from '../../src/services/supabase';
 
-export default function LoginScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
+const AddSubcontractorScreen = () => {
+ const router = useRouter();
+ const [modalVisible, setModalVisible] = useState(false);
+ const [subName, setSubName] = useState('');
+ const [subEmail, setSubEmail] = useState('');
+ const [subPhone, setSubPhone] = useState('');
+ const [sending, setSending] = useState(false);
 
-  const goToSignup = () => {
-    if (typeof window !== 'undefined') {
-      window.location.href = '/signup';
-    } else {
-      router.push('/signup');
-    }
-  };
+ // NEW: Add dropdown state
+ const [clients, setClients] = useState([]);
+ const [projects, setProjects] = useState([]);
+ const [selectedClient, setSelectedClient] = useState('');
+ const [selectedProject, setSelectedProject] = useState('');
 
-  const handleLogin = async () => {
-    if (!email || !password) {
-      alert('Please enter email and password');
-      return;
-    }
-    setLoading(true);
-    try {
-      await authService.signIn(email, password);
-      if (typeof window !== 'undefined') {
-        window.location.href = '/';
-      } else {
-        router.replace('/');
-      }
-    } catch (error) {
-      alert('Login Failed: ' + error.message);
-      setLoading(false);
-    }
-  };
+ // NEW: Auto-fetch current user's GC and projects
+ useEffect(() => {
+ const fetchCurrentClient = async () => {
+ const { data: { user } } = await supabase.auth.getUser();
+ if (!user) return;
 
-  return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.logoContainer}>
-          <Image source={require('../assets/logo.png')} style={styles.logoImage} />
-          <Text style={styles.subtitleText}>Workers' Compensation Verification Platform</Text>
-        </View>
+ const { data } = await supabase
+ .from('clients')
+ .select('id, company_name')
+ .eq('email', user.email)
+ .single();
 
-        <TouchableOpacity style={styles.signUpButton} onPress={goToSignup}>
-          <Text style={styles.signUpButtonText}>Create Account</Text>
-          <Text style={styles.signUpButtonSubtext}>Register your company and projects</Text>
-        </TouchableOpacity>
+ if (data) {
+ setSelectedClient(data.id);
+ setClients([data]);
 
-        <View style={styles.form}>
-          <Text style={styles.title}>Sign In</Text>
-          <Text style={styles.formSubtitle}>Already have an account?</Text>
-          <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" placeholderTextColor="#999" />
-          <TextInput style={styles.input} placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry placeholderTextColor="#999" />
-          <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleLogin} disabled={loading}>
-            <Text style={styles.buttonText}>{loading ? 'Signing in...' : 'Sign In'}</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
-  );
-}
+ const { data: projectData } = await supabase
+ .from('projects')
+ .select('id, project_name')
+ .eq('client_id', data.id);
+ setProjects(projectData || []);
+ }
+ };
+ fetchCurrentClient();
+ }, []);
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f7fafc' },
-  scrollContent: { flexGrow: 1, padding: 24, justifyContent: 'center' },
-  logoContainer: { alignItems: 'center', marginBottom: 24 },
-  logoImage: { width: 320, height: 150, resizeMode: 'contain', marginBottom: 8 },
-  subtitleText: { fontSize: 14, color: '#d69e2e', fontWeight: '500', textAlign: 'center' },
-  signUpButton: { backgroundColor: '#38a169', borderRadius: 12, padding: 20, alignItems: 'center', marginBottom: 20 },
-  signUpButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  signUpButtonSubtext: { color: '#c6f6d5', fontSize: 13, marginTop: 4 },
-  form: { backgroundColor: '#fff', borderRadius: 16, padding: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#1a365d', marginBottom: 4 },
-  formSubtitle: { fontSize: 14, color: '#666', marginBottom: 20 },
-  input: { borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, padding: 16, fontSize: 16, marginBottom: 16, backgroundColor: '#f7fafc' },
-  button: { backgroundColor: '#007AFF', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 8 },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-});
+ // NEW: When client changes, fetch their projects
+ const handleClientChange = async (clientId) => {
+ setSelectedClient(clientId);
+ setSelectedProject('');
+ if (clientId) {
+ const { data } = await supabase.from('projects').select('id, project_name').eq('client_id', clientId);
+ setProjects(data || []);
+ } else {
+ setProjects([]);
+ }
+ };
+
+ const handleGCUpload = () => {
+ router.push('/upload');
+ };
+
+ const handleSendLink = () => {
+ setModalVisible(true);
+ };
+
+ const handleSendInvite = async () => {
+ if (!selectedClient) {
+ alert('Please select a GC (General Contractor)');
+ return;
+ }
+ if (!selectedProject) {
+ alert('Please select a Project');
+ return;
+ }
+ if (!subName.trim()) {
+ alert('Company name is required');
+ return;
+ }
+ if (!subEmail.trim() && !subPhone.trim()) {
+ alert('Email or phone number is required');
+ return;
+ }
+
+ setSending(true);
+
+ try {
+ const token = 'sub-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+ const link = 'https://coverageguard.net/verify?token=' + token;
+
+ const { error: insertError } = await supabase
+ .from('subcontractors')
+ .insert({
+ company_name: subName,
+ email: subEmail,
+ phone: subPhone,
+ invite_token: token,
+ client_id: selectedClient,
+ project_id: selectedProject,
+ verification_status: 'MANUAL_REVIEW',
+ created_at: new Date().toISOString()
+ });
+
+ if (insertError) {
+ console.error('Insert error:', insertError);
+ }
+
+ // Send email via Supabase Edge Function (bypasses CORS)
+ try {
+ await fetch('https://rumcdinmuiqhcakhuscs.supabase.co/functions/v1/send-invite', {
+ method: 'POST',
+ headers: {
+ 'Content-Type': 'application/json',
+ 'Authorization': 'Bearer eyJhbG…yE04'
+ },
+ body: JSON.stringify({
+ email: subEmail,
+ companyName: subName,
+ link: link
+ })
+ });
+ } catch (emailError) {
+ console.log('Email send error:', emailError);
+ }
+
+ alert('Invite sent!\n\nLink: ' + link);
+ setModalVisible(false);
+ router.push('/');
+ setSubName('');
+ setSubEmail('');
+ setSubPhone('');
+ setSelectedClient('');
+ setSelectedProject('');
+ } catch (error) {
+ alert('Error: ' + error.message);
+ } finally {
+ setSending(false);
+ }
+ };
+
+ // Helper to reset form
+ const resetForm = () => {
+ setSubName('');
+ setSubEmail('');
+ setSubPhone('');
+ setSelectedClient('');
+ setSelectedProject('');
+ setProjects([]);
+ setModalVisible(false);
+ };
+
+ return (
+ <View style={styles.container}>
+ <View style={styles.header}>
+ <TouchableOpacity onPress={() => router.back()}>
+ <Text style={styles.backText}>← Back</Text>
+ </TouchableOpacity>
+ <Text style={styles.headerTitle}>Add Subcontractor</Text>
+ <View style={{ width: 50 }} />
+ </View>
+
+ <ScrollView style={styles.content}>
+ <Text style={styles.subtitle}>Choose how to add a subcontractor:</Text>
+
+ <TouchableOpacity style={styles.optionCard} onPress={handleSendLink}>
+ <View style={styles.optionIcon}><Text style={styles.iconText}>📧</Text></View>
+ <View style={styles.optionContent}>
+ <Text style={styles.optionTitle}>Send Invite Link</Text>
+ <Text style={styles.optionDesc}>We'll email them a link to upload their COI directly.</Text>
+ </View>
+ <Text style={styles.arrow}>›</Text>
+ </TouchableOpacity>
+
+ <TouchableOpacity style={styles.optionCard} onPress={handleGCUpload}>
+ <View style={styles.optionIcon}><Text style={styles.iconText}>📤</Text></View>
+ <View style={styles.optionContent}>
+ <Text style={styles.optionTitle}>Upload COI for Them</Text>
+ <Text style={styles.optionDesc}>If they can't do it themselves, you can upload their COI.</Text>
+ </View>
+ <Text style={styles.arrow}>›</Text>
+ </TouchableOpacity>
+
+ <View style={styles.helpBox}>
+ <Text style={styles.helpTitle}>Need Help?</Text>
+ <Text style={styles.helpText}>Call us at (555) 123-4567 for assisted onboarding.</Text>
+ </View>
+ </ScrollView>
+
+ <Modal visible={modalVisible} animationType="slide" transparent>
+ <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
+ <ScrollView contentContainerStyle={styles.modalScroll}>
+ <View style={styles.modalContent}>
+ <Text style={styles.modalTitle}>Send Invite Link</Text>
+
+ <Text style={styles.label}>Select GC *</Text>
+ <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
+ {clients.map(client => (
+ <TouchableOpacity
+ key={client.id}
+ style={[styles.chip, selectedClient === client.id && styles.chipSelected]}
+ onPress={() => handleClientChange(client.id)}
+ >
+ <Text style={[styles.chipText, selectedClient === client.id && styles.chipTextSelected]}>
+ {client.company_name}
+ </Text>
+ </TouchableOpacity>
+ ))}
+ </ScrollView>
+
+ {selectedClient ? (
+ <>
+ <Text style={styles.label}>Select Project *</Text>
+ <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
+ {projects.map(proj => (
+ <TouchableOpacity
+ key={proj.id}
+ style={[styles.chip, selectedProject === proj.id && styles.chipSelected]}
+ onPress={() => setSelectedProject(proj.id)}
+ >
+ <Text style={[styles.chipText, selectedProject === proj.id && styles.chipTextSelected]}>
+ {proj.project_name}
+ </Text>
+ </TouchableOpacity>
+ ))}
+ </ScrollView>
+ </>
+ ) : null}
+
+ <TextInput style={styles.input} placeholder="Company Name *" value={subName} onChangeText={setSubName} placeholderTextColor="#999" />
+ <TextInput style={styles.input} placeholder="Email Address" value={subEmail} onChangeText={setSubEmail} keyboardType="email-address" autoCapitalize="none" placeholderTextColor="#999" />
+ <TextInput style={styles.input} placeholder="Phone Number" value={subPhone} onChangeText={setSubPhone} keyboardType="phone-pad" placeholderTextColor="#999" />
+
+ <TouchableOpacity style={[styles.sendBtn, sending && styles.sendBtnDisabled]} onPress={handleSendInvite} disabled={sending}>
+ {sending ? <ActivityIndicator color="#fff" /> : <Text style={styles.sendBtnText}>📤 Send Invite Link</Text>}
+ </TouchableOpacity>
+
+ <TouchableOpacity style={styles.cancelBtn} onPress={resetForm}>
+ <Text style={styles.cancelBtnText}>Cancel</Text>
+ </TouchableOpacity>
+ </View>
+ </ScrollView>
+ </KeyboardAvoidingView>
+ </Modal>
+ </View>
+ );
+};

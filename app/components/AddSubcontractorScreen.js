@@ -125,6 +125,7 @@ useEffect(() => {
 
  alert('Invite sent!\n\nLink: ' + link);
  setModalVisible(false);
+router.push('/');
  setSubName('');
  setSubEmail('');
  setSubPhone('');
