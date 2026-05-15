@@ -36,14 +36,23 @@ export default function DashboardScreen() {
  const { data: { user } } = await supabase.auth.getUser();
  if (!user) return;
 
- // Get client_id from clients table using user's email
+ // Get client_id using ilike for case-insensitive match
  const { data: clientData } = await supabase
  .from('clients')
  .select('id')
- .eq('email', user.email)
+ .ilike('email', user.email)
  .single();
  
  const clientId = clientData?.id;
+ console.log('clientId:', clientId); // Add this to debug
+
+ // If no client found, show empty
+ if (!clientId) {
+ setSubs([]);
+ setProfile({ company_name: user.email });
+ setLoading(false);
+ return;
+ }
 
  // Filter subcontractors by client_id
  const { data: subcontractors } = await supabase
