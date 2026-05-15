@@ -34,26 +34,31 @@ export default function DashboardScreen() {
  setLoading(true);
  try {
  const { data: { user } } = await supabase.auth.getUser();
+ if (!user) return;
 
+ // Get client_id from clients table using user's email
+ const { data: clientData } = await supabase
+ .from('clients')
+ .select('id')
+ .eq('email', user.email)
+ .single();
+ 
+ const clientId = clientData?.id;
+
+ // Filter subcontractors by client_id
  const { data: subcontractors } = await supabase
  .from('subcontractors')
- .select('*');
+ .select('*')
+ .eq('client_id', clientId);
 
  setSubs(subcontractors || []);
-
- if (user) {
  setProfile({ company_name: user.email });
- }
  } catch (error) {
  console.error('Error loading data:', error);
  } finally {
  setLoading(false);
  }
- };
- const handleLogout = async () => {
- await authService.signOut();
- router.replace('/login');
- };
+};
 
  const totalSubs = subs.length;
  const pendingCount = subs.filter(s => s.verification_status === 'PENDING' || s.verification_status === 'MANUAL_REVIEW' || !s.verification_status).length;
