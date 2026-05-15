@@ -59,7 +59,10 @@ export default function DashboardScreen() {
  setLoading(false);
  }
 };
-
+const handleLogout = async () => {
+ await authService.signOut();
+ router.replace('/login');
+};
  const totalSubs = subs.length;
  const pendingCount = subs.filter(s => s.verification_status === 'PENDING' || s.verification_status === 'MANUAL_REVIEW' || !s.verification_status).length;
  const issueCount = subs.filter(s => s.verification_status === 'issue' || s.verification_status === 'ISSUE' || s.verification_status === 'expired' || s.verification_status === 'EXPIRED').length;
