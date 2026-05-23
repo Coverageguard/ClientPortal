@@ -163,14 +163,30 @@ export default function VerifyScreen() {
         const uint8Array = new Uint8Array(arrayBuffer);
 
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('coi-files')
-          .upload(fileName, uint8Array, { contentType, upsert: false });
+ .from('coi-files')
+ .upload(fileName, uint8Array, { contentType, upsert: false });
 
-        if (!uploadError) {
-          const { data: { publicUrl } } = supabase.storage.from('coi-files').getPublicUrl(fileName);
-          fileUrl = publicUrl;
-        }
-      }
+if (!uploadError) {
+ const { data: { publicUrl } } = supabase.storage.from('coi-files').getPublicUrl(fileName);
+ fileUrl = publicUrl;
+ 
+ // Insert into coi_uploads table
+ const { error: coiError } = await supabase
+  .from('coi_uploads')
+  .insert({
+   client_id: subcontractor.client_id,
+   subcontractor_name: companyName,
+   file_name: selectedFile.name,
+   file_url: fileUrl,
+   file_type: selectedFile.type,
+   uploaded_at: new Date().toISOString(),
+   status: 'pending',
+   carrier_name: carrierName || null,
+   policy_number: policyNumber || null,
+  });
+ if (coiError) console.error('COI upload insert error:', coiError);
+}
+}
 
       const { error: subError } = await supabase
   .from('subcontractors')

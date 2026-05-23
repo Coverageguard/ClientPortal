@@ -23,13 +23,13 @@ export default function ReportsScreen() {
       const { data: clientData } = await supabase.from('clients').select('id, company_name').ilike('email', user.email).single();
       if (!clientData) { setLoading(false); return; }
 
-      const { data: subs } = await supabase.from('subcontractors').select('id, company_name, fein, carrier_name, policy_number, verification_status, created_at, has_peo, peo_name, last_verified, verified_at, updated_at').eq('client_id', clientData.id).order('created_at', { ascending: false });
+      const { data: subs } = await supabase.from('subcontractors').select('id, company_name, fein, carrier_name, policy_number, verification_status, created_at, has_peo, peo_name, updated_at, submitted_at').eq('client_id', clientData.id).order('created_at', { ascending: false });
 
       if (subs) {
         setSubcontractors(subs.map(s => ({
           id: s.id, name: s.company_name, fein: s.fein, carrier: s.carrier_name, policy: s.policy_number,
           status: s.verification_status?.toLowerCase() || 'pending',
-          lastVerified: s.verification_status === 'VERIFIED' ? (s.last_verified || s.verified_at || s.updated_at || s.created_at)?.split('T')[0] : null, 
+          lastVerified: s.verification_status === 'VERIFIED' ? (s.submitted_at || s.updated_at || s.created_at)?.split('T')[0] : null,
           blocked: false,
           has_peo: s.has_peo || false, peo_name: s.peo_name || null
         })));
@@ -39,7 +39,7 @@ export default function ReportsScreen() {
 
       if (projects && projects.length > 0) {
         const projectIds = projects.map(p => p.id);
-        const { data: projectSubs } = await supabase.from('subcontractors').select('id, company_name, fein, carrier_name, policy_number, verification_status, project_id').in('project_id', projectIds);
+        const { data: projectSubs } = await supabase.from('subcontractors').select('id, company_name, fein, carrier_name, policy_number, verification_status, project_id, has_peo').in('project_id', projectIds);
 
         const builtReports = projects.slice(0, 10).map(project => {
           const projectSubList = (projectSubs || []).filter(ps => ps.project_id === project.id);
@@ -52,6 +52,7 @@ export default function ReportsScreen() {
               id: ps.id,
               name: ps.company_name || 'Unknown', fein: ps.fein || 'N/A', carrier: ps.carrier_name || 'N/A',
               policy: ps.policy_number || 'N/A', status: ps.verification_status?.toLowerCase() || 'pending',
+              has_peo: ps.has_peo || false
             }))
           };
         });
@@ -132,8 +133,8 @@ export default function ReportsScreen() {
         <View style={styles.subListContainer}>
           <View style={styles.subListHeader}>
             <Text style={[styles.subHeaderText, { flex: 2 }]}>Subcontractor</Text>
-            <Text style={[styles.subHeaderText, { flex: 1.3 }]}>Status</Text>
-            <Text style={[styles.subHeaderText, { flex: 0.8 }]}>Actions</Text>
+            <Text style={[styles.subHeaderText, { flex: 1.3, textAlign: 'center' }]}>Status</Text>
+            <Text style={[styles.subHeaderText, { flex: 0.7, textAlign: 'center' }]}>Actions</Text>
           </View>
           {subcontractors.map((sub) => (
             <View key={sub.id} style={[styles.subListRow, sub.blocked && styles.subListRowBlocked]}>
@@ -145,13 +146,14 @@ export default function ReportsScreen() {
               <View style={{ flex: 1.3 }}>
                 <Text style={[styles.statusBadge, { color: getStatusColor(sub.status) }]}>{getStatusLabel(sub.status)}</Text>
               </View>
-              <View style={{ flex: 0.8, flexDirection: 'row', justifyContent: 'center' }}>
+              <View style={{ flex: 0.7, alignItems: 'center' }}>
                 <TouchableOpacity onPress={() => toggleBlock(sub.id)}><Text style={styles.blockIcon}>🚫</Text></TouchableOpacity>
               </View>
             </View>
           ))}
           {subcontractors.length === 0 && <Text style={styles.emptyText}>No subcontractors</Text>}
         </View>
+        <Text style={styles.helpText}>🚫 Tap to block a subcontractor from verifying on your projects</Text>
 
         <View style={styles.divider} />
         <Text style={styles.sectionTitle}>Coverage Reports</Text>
@@ -164,8 +166,7 @@ export default function ReportsScreen() {
         ))}
         {reports.length === 0 && <Text style={styles.emptyText}>No reports</Text>}
       </ScrollView>
-
-      <Modal visible={selectedReport !== null} animationType="slide">
+<Modal visible={selectedReport !== null} animationType="slide">
   <View style={styles.modalContainer}>
     <View style={styles.modalHeader}>
       <TouchableOpacity onPress={() => setSelectedReport(null)}><Text style={styles.closeBtn}>✕ Close</Text></TouchableOpacity>
@@ -183,7 +184,14 @@ export default function ReportsScreen() {
         </View>
         {selectedReport?.subcontractors.map((sub, i) => (
           <View key={i} style={styles.tableRow}>
-            <View style={{ flex: 2 }}><Text style={styles.subName}>{sub.name}</Text><Text style={styles.subFein}>FEIN: {sub.fein}</Text>
+            <View style={{ flex: 2 }}>
+              <Text style={styles.subName}>{sub.name}</Text>
+              {sub.has_peo && (
+                <Text style={styles.peoWarning}>
+                  ⚠️ PEO WARNING: Insurance carriers for subcontractors using a PEO can deny claims if no payroll was reported for the day of the accident. Coverage changes weekly - verify covered employees weekly. If this subcontractor sub-contracts to an uninsured company, your company could be liable for injuries of those sub-sub-contractors.
+                </Text>
+              )}
+              <Text style={styles.subFein}>FEIN: {sub.fein}</Text>
               <Text style={{fontSize: 10, color: '#d69e2e', marginTop: 4}}>
                 {modalWorkers[sub.id]?.map(w => w.full_name).join(', ') || ''}
               </Text>
@@ -235,4 +243,6 @@ const styles = StyleSheet.create({
   tableRow: { flexDirection: 'row', padding: 12, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
   subFein: { fontSize: 11, color: '#666' },
   naic: { fontSize: 11, color: '#666' },
+  helpText: { fontSize: 11, color: '#666', textAlign: 'center', marginTop: -10, marginBottom: 20 },
+  peoWarning: { fontSize: 9, color: '#c53030', fontWeight: '600', marginTop: 2, lineHeight: 11 },
 });
