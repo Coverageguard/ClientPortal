@@ -1,6 +1,4 @@
 // Client Portal - Public Verify Screen
-// Subcontractor clicks this from the email link to upload their COI
-
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -34,21 +32,17 @@ export default function VerifyScreen() {
   const [contactName, setContactName] = useState('');
   const [contactEmail, setContactEmail] = useState('');
 
-  // ----- NEW: PEO fields -------------------------------------------------
   const [usesPEO, setUsesPEO] = useState(false);
   const [peoName, setPeoName] = useState('');
 
-  // ----- NEW: Intended Workers ------------------------------------------
   const [workers, setWorkers] = useState([]);
 
-  // Temp fields for adding a new worker
   const [newWorkerName, setNewWorkerName] = useState('');
   const [newWorkerTrade, setNewWorkerTrade] = useState('');
   const [newWorkerProject, setNewWorkerProject] = useState('');
   const [newWorkerStart, setNewWorkerStart] = useState('');
   const [newWorkerEnd, setNewWorkerEnd] = useState('');
 
-  // -----------------------------------------------------------------------
   useEffect(() => {
     if (token) validateToken();
     else setLoading(false);
@@ -72,7 +66,6 @@ export default function VerifyScreen() {
       setSubcontractor(data);
       setCompanyName(data.company_name || '');
       setContactEmail(data.email || '');
-      // pre‑fill PEO info if it already exists
       setUsesPEO(!!data.has_peo);
       setPeoName(data.peo_name || '');
     } catch (e) {
@@ -103,7 +96,6 @@ export default function VerifyScreen() {
     }
   };
 
-  // ----- NEW: add a worker to the local array ----------------------------
   const addWorker = () => {
     if (!newWorkerName.trim()) {
       Alert.alert('Error', 'Worker name is required');
@@ -132,7 +124,6 @@ export default function VerifyScreen() {
 
     setWorkers([...workers, worker]);
 
-    // clear the temporary fields
     setNewWorkerName('');
     setNewWorkerTrade('');
     setNewWorkerProject('');
@@ -146,9 +137,7 @@ export default function VerifyScreen() {
     setWorkers(copy);
   };
 
-  // -----------------------------------------------------------------------
   const handleSubmit = async () => {
-    // ----- basic validation ------------------------------------------------
     if (!companyName.trim()) {
       Alert.alert('Error', 'Company name is required');
       return;
@@ -160,7 +149,6 @@ export default function VerifyScreen() {
 
     setUploading(true);
     try {
-      // ----- upload COI ----------------------------------------------------
       let fileUrl = null;
       if (selectedFile) {
         const fileExt = selectedFile.name.split('.').pop();
@@ -184,37 +172,34 @@ export default function VerifyScreen() {
         }
       }
 
-      // ----- update subcontractor with COI + PEO info ----------------------
       const { error: subError } = await supabase
-        .from('subcontractors')
-        .update({
-          company_name: companyName,
-          fein: fein || null,
-          carrier_name: carrierName || null,
-          policy_number: policyNumber || null,
-          contact_name: contactName || null,
-          email: contactEmail || null,
-          coi_url: fileUrl,
-          verification_status: 'PENDING_REVIEW',
-          has_peo: usesPEO,
-          peo_name: usesPEO ? peoName : null,
-          submitted_at: new Date().toISOString(),
-        })
-        .eq('id', subcontractor.id);
-
+  .from('subcontractors')
+  .update({
+    company_name: companyName,
+    fein: fein || null,
+    carrier_name: carrierName || null,
+    policy_number: policyNumber || null,
+    contact_name: contactName || null,
+    email: contactEmail || null,
+    coi_url: fileUrl,
+    verification_status: 'PENDING_REVIEW',
+    has_peo: usesPEO,                     // true when the user selects “Yes”
+    peo_name: usesPEO ? peoName : null,   // stores the PEO name only if has_peo is true
+    submitted_at: new Date().toISOString(),
+  })
+  .eq('id', subcontractor.id);
       if (subError) throw subError;
 
-      // ----- insert intended workers (if any) -----------------------------
       if (workers.length > 0) {
         const workerRows = workers.map((w) => ({
-          subcontractor_id: subcontractor.id,
-          worker_name: w.name,
-          trade: w.trade,
-          project_name: w.project,
-          start_date: w.start_date,
-          end_date: w.end_date,
-          verification_status: 'pending',
-        }));
+  subcontractor_id: subcontractor.id,
+  full_name: w.name,      // <-- was worker_name
+  trade: w.trade,
+  project_name: w.project,
+  start_date: w.start_date,
+  end_date: w.end_date,
+  verification_status: 'pending',
+}));
 
         const { error: workersError } = await supabase
           .from('intended_workers')
@@ -222,62 +207,374 @@ export default function VerifyScreen() {
 
         if (workersError) {
           console.error('Intended workers insert error:', workersError);
-          // we don't abort the whole submission – just log
         }
-        // If we got here, workers (if any) have been inserted
-  }   // <-- closes the “if (workers.length > 0)” block
+      }
 
-  // ----- finish up --------------------------------------------------------
-  setSubmitted(true);
-  Alert.alert('✅ Success!', 'Your information has been submitted for verification.', [
-    { text: 'OK', onPress: () => router.replace('/') },
-  ]);
-} catch (error) {
-  console.error('Error:', error);
-  Alert.alert('Error', 'Failed to submit.');
-} finally {
-  setUploading(false);
-}
-}; // <-- end of handleSubmit
+      setSubmitted(true);
+      Alert.alert('✅ Success!', 'Your information has been submitted for verification.', [
+        { text: 'OK', onPress: () => router.replace('/') },
+      ]);
+    } catch (error) {
+      console.error('Error:', error);
+      Alert.alert('Error', 'Failed to submit.');
+    } finally {
+      setUploading(false);
+    }
+  };
 
-// -------------------------------------------------------------------------
-if (loading) {
-  return (
-    <View style={styles.loadingContainer}>
-      <ActivityIndicator size="large" color="#d69e2e" />
-      <Text style={styles.loadingText}>Verifying...</Text>
-    </View>
-  );
-}
-
-if (!subcontractor) {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.errorText}>Invalid verification link</Text>
-    </View>
-  );
-}
-
-// Success state -----------------------------------------------------------
-if (submitted) {
-  return (
-    <View style={styles.container}>
-      <View style={styles.successBox}>
-        <Text style={styles.successIcon}>✅</Text>
-        <Text style={styles.successTitle}>Verification Submitted!</Text>
-        <Text style={styles.successText}>
-          Your information has been submitted for review. You will be notified once your coverage has been verified.
-        </Text>
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#d69e2e" />
+        <Text style={styles.loadingText}>Verifying...</Text>
       </View>
-    </View>
-  );
-}
+    );
+  }
 
-// Main form ---------------------------------------------------------------
-return (
+  if (!subcontractor) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>Invalid verification link</Text>
+      </View>
+    );
+  }
+
+  if (submitted) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.successBox}>
+          <Text style={styles.successIcon}>✅</Text>
+          <Text style={styles.successTitle}>Verification Submitted!</Text>
+          <Text style={styles.successText}>
+            Your information has been submitted for review. You will be notified once your coverage has been verified.
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+ return (
   <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-    {/* …the rest of your JSX (header, info box, core fields, PEO toggle,
-          intended‑workers UI, COI upload, submit button) … */}
+    <View style={styles.header}>
+      <Text style={styles.logoText}>🛡️ CoverageGuard</Text>
+      <Text style={styles.headerTitle}>Verify Your Coverage</Text>
+    </View>
+
+    <View style={styles.infoBox}>
+      <Text style={styles.infoText}>
+        Please provide your workers' compensation insurance information. This typically takes 2-3
+        minutes.
+      </Text>
+    </View>
+
+    <View style={styles.form}>
+      {/* ----- Core COI fields ----- */}
+      <Text style={styles.label}>Company Name *</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Your company name"
+        placeholderTextColor="#999"
+        value={companyName}
+        onChangeText={setCompanyName}
+      />
+
+      <Text style={styles.label}>FEIN (Federal EIN)</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="XX-XXXXXXX"
+        placeholderTextColor="#999"
+        value={fein}
+        onChangeText={setFein}
+        keyboardType="numeric"
+      />
+
+      <Text style={styles.label}>Insurance Carrier</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="e.g., Hartford, Liberty Mutual"
+        placeholderTextColor="#999"
+        value={carrierName}
+        onChangeText={setCarrierName}
+      />
+
+      <Text style={styles.label}>Policy Number</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Policy number"
+        placeholderTextColor="#999"
+        value={policyNumber}
+        onChangeText={setPolicyNumber}
+      />
+
+      <Text style={styles.label}>Contact Name</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Your name"
+        placeholderTextColor="#999"
+        value={contactName}
+        onChangeText={setContactName}
+      />
+
+      <Text style={styles.label}>Contact Email</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="your@email.com"
+        placeholderTextColor="#999"
+        value={contactEmail}
+        onChangeText={setContactEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
+
+      {/* ----- PEO toggle ----- */}
+      <Text style={styles.label}>Do you use a PEO for coverage?</Text>
+      <View style={styles.toggleContainer}>
+        <TouchableOpacity
+          style={[styles.toggleBtn, usesPEO && styles.toggleBtnActive]}
+          onPress={() => setUsesPEO(!usesPEO)}
+        >
+          <Text style={styles.toggleText}>{usesPEO ? 'Yes' : 'No'}</Text>
+        </TouchableOpacity>
+      </View>
+
+      {usesPEO && (
+        <>
+          <Text style={styles.label}>PEO Name *</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="PEO name (e.g., XYZ PEO Inc.)"
+            placeholderTextColor="#999"
+            value={peoName}
+            onChangeText={setPeoName}
+          />
+        </>
+      )}
+
+      {/* ----- Intended Workers ----- */}
+      <Text style={styles.label}>Intended Workers (optional)</Text>
+      {workers.length > 0 && (
+        <View style={styles.workerList}>
+          {workers.map((w, idx) => (
+            <View key={idx} style={styles.workerRow}>
+              <View style={styles.workerInfo}>
+                <Text style={styles.workerName}>{w.name}</Text>
+                <Text style={styles.workerDetail}>
+                  {w.trade} – {w.project}
+                </Text>
+                <Text style={styles.workerDetail}>
+                  {w.start_date} → {w.end_date}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => removeWorker(idx)} style={styles.removeWorkerBtn}>
+                <Text style={styles.removeWorkerText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      )}
+
+      <View style={styles.newWorkerForm}>
+        <TextInput
+          style={styles.input}
+          placeholder="Worker name"
+          placeholderTextColor="#999"
+          value={newWorkerName}
+          onChangeText={setNewWorkerName}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Trade / role"
+          placeholderTextColor="#999"
+          value={newWorkerTrade}
+          onChangeText={setNewWorkerTrade}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Project name"
+          placeholderTextColor="#999"
+          value={newWorkerProject}
+          onChangeText={setNewWorkerProject}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Start date (e.g., 2026-05-20)"
+          placeholderTextColor="#999"
+          value={newWorkerStart}
+          onChangeText={setNewWorkerStart}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="End date (e.g., 2026-05-28)"
+          placeholderTextColor="#999"
+          value={newWorkerEnd}
+          onChangeText={setNewWorkerEnd}
+        />
+        <TouchableOpacity style={styles.addWorkerBtn} onPress={addWorker}>
+          <Text style={styles.addWorkerText}>Add Worker</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* ----- COI Upload ----- */}
+      <View style={styles.uploadSection}>
+        <Text style={styles.label}>Upload COI (Certificate of Insurance) *</Text>
+        <TouchableOpacity style={styles.uploadButton} onPress={pickDocument}>
+          <Text style={styles.uploadButtonText}>📷 Select File</Text>
+        </TouchableOpacity>
+        {selectedFile && (
+          <View style={styles.fileSelected}>
+            <Text style={styles.fileName}>✓ {selectedFile.name}</Text>
+            <TouchableOpacity onPress={pickDocument}>
+              <Text style={styles.changeFile}>Change</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        <Text style={styles.uploadHint}>PDF, JPG, or PNG up to 10MB</Text>
+      </View>
+
+      {/* ----- Submit ----- */}
+      <TouchableOpacity
+        style={[styles.submitButton, uploading && styles.submitButtonDisabled]}
+        onPress={handleSubmit}
+        disabled={uploading}
+      >
+        {uploading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.submitButtonText}>Submit for Verification</Text>
+        )}
+      </TouchableOpacity>
+    </View>
   </ScrollView>
 );
-} // <-- end of VerifyScreen component
+}
+
+// --------------------------------------------------------------
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f7fafc' },
+  content: { padding: 20, paddingBottom: 40 },
+
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f7fafc',
+  },
+  loadingText: { marginTop: 12, fontSize: 16, color: '#666' },
+  errorText: { fontSize: 18, color: '#e53e3e', textAlign: 'center', marginTop: 100 },
+
+  header: { alignItems: 'center', marginBottom: 20, paddingTop: 50 },
+  logoText: { fontSize: 32, marginBottom: 8 },
+  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#1a365d' },
+
+  infoBox: { backgroundColor: '#ebf8ff', padding: 16, borderRadius: 12, marginBottom: 20 },
+  infoText: { fontSize: 14, color: '#2b6cb0', lineHeight: 20 },
+
+  form: { backgroundColor: '#fff', padding: 20, borderRadius: 12 },
+
+  label: { fontSize: 14, fontWeight: '600', color: '#4a5568', marginBottom: 6, marginTop: 12 },
+  input: {
+    backgroundColor: '#f7fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#1a365d',
+    marginBottom: 12,
+  },
+
+  toggleContainer: { flexDirection: 'row', marginTop: 8, marginBottom: 12 },
+  toggleBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    backgroundColor: '#e2e8f0',
+  },
+  toggleBtnActive: { backgroundColor: '#38a169' },
+  toggleText: { color: '#fff', fontWeight: '600' },
+
+  workerList: { marginTop: 8, marginBottom: 12 },
+  workerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  workerInfo: { flex: 1 },
+  workerName: { fontWeight: '600', color: '#1a365d' },
+  workerDetail: { fontSize: 12, color: '#4a5568' },
+  removeWorkerBtn: { paddingHorizontal: 8 },
+  removeWorkerText: { fontSize: 18, color: '#e53e3e' },
+
+  /* ----- Add worker form ----- */
+  newWorkerForm: { marginTop: 12 },
+  addWorkerBtn: {
+    backgroundColor: '#007AFF',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  addWorkerText: { color: '#fff', fontWeight: '600' },
+
+  /* ----- COI upload ----- */
+  uploadSection: {
+    marginTop: 20,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+  },
+  uploadButton: {
+    backgroundColor: '#007AFF',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  uploadButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  fileSelected: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#c6f6d5',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 12,
+  },
+  fileName: { fontSize: 14, fontWeight: '600', color: '#276749' },
+  changeFile: { fontSize: 14, color: '#007AFF', fontWeight: '600' },
+  uploadHint: { fontSize: 12, color: '#718096', marginTop: 8 },
+
+  /* ----- Submit button ----- */
+  submitButton: {
+    backgroundColor: '#d69e2e',
+    padding: 18,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  submitButtonDisabled: { backgroundColor: '#ccc' },
+  submitButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+
+  /* ----- Success screen ----- */
+  successBox: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  successIcon: { fontSize: 64, marginBottom: 20 },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#276749',
+    marginBottom: 12,
+  },
+  successText: {
+    fontSize: 16,
+    color: '#4a5568',
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+});
