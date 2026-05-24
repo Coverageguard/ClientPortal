@@ -172,18 +172,19 @@ if (!uploadError) {
  
  // Insert into coi_uploads table
  const { error: coiError } = await supabase
-  .from('coi_uploads')
-  .insert({
-   client_id: subcontractor.client_id,
-   subcontractor_name: companyName,
-   file_name: selectedFile.name,
-   file_url: fileUrl,
-   file_type: selectedFile.type,
-   uploaded_at: new Date().toISOString(),
-   status: 'pending',
-   carrier_name: carrierName || null,
-   policy_number: policyNumber || null,
-  });
+ .from('coi_uploads')
+ .insert({
+ client_id: subcontractor.client_id,
+ subcontractor_id: subcontractor.id,  // ADD THIS LINE
+ subcontractor_name: companyName,
+ file_name: selectedFile.name,
+ file_url: fileUrl,
+ file_type: selectedFile.type,
+ uploaded_at: new Date().toISOString(),
+ status: 'pending',
+ carrier_name: carrierName || null,
+ policy_number: policyNumber || null,
+ });
  if (coiError) console.error('COI upload insert error:', coiError);
 }
 }
