@@ -73,10 +73,9 @@ const handleLogout = async () => {
  router.replace('/login');
 };
  const totalSubs = subs.length;
- const pendingCount = subs.filter(s => s.verification_status === 'PENDING' || s.verification_status === 'MANUAL_REVIEW' || !s.verification_status).length;
- const issueCount = subs.filter(s => s.verification_status === 'issue' || s.verification_status === 'ISSUE' || s.verification_status === 'expired' || s.verification_status === 'EXPIRED').length;
- const verifiedCount = subs.filter(s => s.verification_status === 'verified' || s.verification_status === 'VERIFIED' || s.verification_status === 'ACTIVE').length;
-
+ const pendingCount = subs.filter(s => s.verification_status === 'PENDING' || s.verification_status === 'PENDING_REVIEW' || s.verification_status === 'MANUAL_REVIEW' || !s.verification_status).length;
+const issueCount = subs.filter(s => s.verification_status === 'ISSUE' || s.verification_status === 'EXPIRED' || s.verification_status === 'NOT_FOUND').length;
+const verifiedCount = subs.filter(s => s.verification_status === 'VERIFIED' || s.verification_status === 'ACTIVE').length;
  return (
  <View style={styles.container}>
  <View style={styles.header}>
