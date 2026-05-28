@@ -123,13 +123,14 @@ const AddSubcontractorScreen = () => {
  // Send email via Supabase Edge Function
 try {
   const { data, error } = await supabase.functions.invoke('send-invite', {
-    body: {
-      email: subEmail,
-      companyName: subName,
-      gcCompanyName: gcCompanyName,
-      link: link
-    }
-  });
+ body: {
+ email: subEmail,
+ subName: subName,
+ projectName: selectedProj?.project_name || 'your project',
+ gcName: gcCompanyName || 'CoverageGuard',
+ inviteLink: link
+ }
+});
   if (error) console.log('Function error:', error);
 } catch (emailError) {
   console.log('Email send error:', emailError);
