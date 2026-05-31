@@ -125,21 +125,6 @@ export default function ReportsScreen() {
                 <View style={styles.cvrRow}><Text style={styles.cvrLabel}>Florida Coverage:</Text><Text style={styles.cvrValue}>{selectedSub.verification_status === 'VERIFIED' ? '✓ Confirmed' : '⏳ Pending'}</Text></View>
 </View>
 
-{selectedSub.carrier_name && (
-  <TouchableOpacity style={{backgroundColor: '#1a365d', padding: 12, borderRadius: 8, marginTop: 12, alignItems: 'center'}}>
-    <Text style={{color: '#fff', fontWeight: '600'}}>✉️ Email Carrier</Text>
-  </TouchableOpacity>
-)}
-
-{selectedSub.pEO_name && (
-  <View style={styles.cvrSection}>
-    <Text style={styles.cvrSectionTitle}>PEO Information</Text>
-    <View style={styles.cvrRow}><Text style={styles.cvrLabel}>PEO Name:</Text><Text style={styles.cvrValue}>{selectedSub.pEO_name}</Text></View>
-    <TouchableOpacity style={{backgroundColor: '#007AFF', padding: 12, borderRadius: 8, marginTop: 12, alignItems: 'center'}}>
-      <Text style={{color: '#fff', fontWeight: '600'}}>✉️ Email PEO</Text>
-    </TouchableOpacity>
-  </View>
-)}
               {selectedSub.intended_workers && selectedSub.intended_workers.length > 0 ? (
                 <View style={styles.cvrSection}><Text style={styles.cvrSectionTitle}>Worker Verification</Text>
                   {selectedSub.intended_workers.map((worker, idx) => (<View key={worker.id || idx} style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#e2e8f0'}}><Text style={styles.cvrValue}>{worker.full_name || 'Unknown'}</Text><View style={{backgroundColor: getWorkerStatusColor(worker.worker_status), paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12}}><Text style={{fontSize: 11, fontWeight: '600', color: '#333'}}>{getWorkerStatusLabel(worker.worker_status)}</Text></View></View>))}
