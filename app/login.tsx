@@ -11,57 +11,49 @@ export default function LoginScreen() {
  const router = useRouter();
 
  const goToSignup = () => {
- if (typeof window !== 'undefined') {
- window.location.href = '/signup';
- } else {
- router.push('/signup');
- }
+  router.push('/signup');
  };
 
  const handleLogin = async () => {
- if (!email || !password) {
- alert('Please enter email and password');
- return;
- }
- setLoading(true);
- try {
- await authService.signIn(email, password);
- setLoading(false);
- if (typeof window !== 'undefined') {
- window.location.href = '/';
- } else {
- router.replace('/');
- }
- } catch (error) {
- alert('Login Failed: ' + error.message);
- setLoading(false);
- }
+  if (!email || !password) {
+   alert('Please enter email and password');
+   return;
+  }
+  setLoading(true);
+  try {
+   await authService.signIn(email, password);
+   setLoading(false);
+   router.replace('/');
+  } catch (error) {
+   alert('Login Failed: ' + error.message);
+   setLoading(false);
+  }
  };
 
  return (
- <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
- <ScrollView contentContainerStyle={styles.scrollContent}>
- <View style={styles.logoContainer}>
- <Image source={require('../assets/logo.png')} style={styles.logoImage} />
- <Text style={styles.subtitleText}>Workers' Compensation Verification Platform</Text>
- </View>
+  <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+   <ScrollView contentContainerStyle={styles.scrollContent}>
+    <View style={styles.logoContainer}>
+     <Image source={require('../assets/logo.png')} style={styles.logoImage} />
+     <Text style={styles.subtitleText}>Workers' Compensation Verification Platform</Text>
+    </View>
 
- <TouchableOpacity style={styles.signUpButton} onPress={goToSignup}>
- <Text style={styles.signUpButtonText}>Create Account</Text>
- <Text style={styles.signUpButtonSubtext}>Register your company and projects</Text>
- </TouchableOpacity>
+    <TouchableOpacity style={styles.signUpButton} onPress={goToSignup}>
+     <Text style={styles.signUpButtonText}>Create Account</Text>
+     <Text style={styles.signUpButtonSubtext}>Register your company and projects</Text>
+    </TouchableOpacity>
 
- <View style={styles.form}>
- <Text style={styles.title}>Sign In</Text>
- <Text style={styles.formSubtitle}>Already have an account?</Text>
- <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" placeholderTextColor="#999" />
- <TextInput style={styles.input} placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry placeholderTextColor="#999" />
- <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleLogin} disabled={loading}>
- <Text style={styles.buttonText}>{loading ? 'Signing in...' : 'Sign In'}</Text>
- </TouchableOpacity>
- </View>
- </ScrollView>
- </KeyboardAvoidingView>
+    <View style={styles.form}>
+     <Text style={styles.title}>Sign In</Text>
+     <Text style={styles.formSubtitle}>Already have an account?</Text>
+     <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" placeholderTextColor="#999" />
+     <TextInput style={styles.input} placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry placeholderTextColor="#999" />
+     <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleLogin} disabled={loading}>
+      <Text style={styles.buttonText}>{loading ? 'Signing in...' : 'Sign In'}</Text>
+     </TouchableOpacity>
+    </View>
+   </ScrollView>
+  </KeyboardAvoidingView>
  );
 }
 

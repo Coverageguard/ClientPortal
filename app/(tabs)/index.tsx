@@ -19,16 +19,16 @@ export default function DashboardScreen() {
  const router = useRouter();
 
  useEffect(() => {
- const checkAuth = async () => {
- const { data: { user } } = await supabase.auth.getUser();
- if (!user) {
- router.replace('/login');
- return;
- }
- loadData();
- };
- checkAuth();
- }, []);
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      router.replace('/login');
+      return;
+    }
+    loadData();
+  };
+  checkAuth();
+}, []);
 
  const loadData = async () => {
  setLoading(true);
@@ -119,33 +119,26 @@ const verifiedCount = subs.filter(s => s.verification_status === 'VERIFIED' || s
 
  <View style={styles.actionsContainer}>
  <Link href="/add-subcontractor" asChild>
- <TouchableOpacity style={styles.actionButton}>
- <Text style={styles.actionIcon}>📤</Text>
- <Text style={styles.actionText}>Add Sub</Text>
- </TouchableOpacity>
-</Link>
-
- <Link href="/reports" asChild>
- <TouchableOpacity style={styles.actionButton}>
- <Text style={styles.actionIcon}>📊</Text>
- <Text style={styles.actionText}>Reports</Text>
- </TouchableOpacity>
+  <TouchableOpacity style={styles.actionButton}>
+   <Text style={styles.actionIcon}>📤</Text>
+   <Text style={styles.actionText}>Add Sub</Text>
+  </TouchableOpacity>
  </Link>
 
- <Link href="/messages" asChild>
- <TouchableOpacity style={styles.actionButton}>
- <Text style={styles.actionIcon}>🔔</Text>
- <Text style={styles.actionText}>Alerts</Text>
- </TouchableOpacity>
+ <Link href="/reports" asChild>
+  <TouchableOpacity style={styles.actionButton}>
+   <Text style={styles.actionIcon}>📋</Text>
+   <Text style={styles.actionText}>Coverage{'\n'}Dashboard</Text>
+  </TouchableOpacity>
  </Link>
 
  <Link href="/settings" asChild>
- <TouchableOpacity style={styles.actionButton}>
- <Text style={styles.actionIcon}>⚙️</Text>
- <Text style={styles.actionText}>Settings</Text>
- </TouchableOpacity>
+  <TouchableOpacity style={styles.actionButton}>
+   <Text style={styles.actionIcon}>⚙️</Text>
+   <Text style={styles.actionText}>Settings</Text>
+  </TouchableOpacity>
  </Link>
- </View>
+</View>
  </View>
  );
 }

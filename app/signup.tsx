@@ -15,46 +15,39 @@ const SignUpScreen = ({ navigation }) => {
 
  const handleSignUp = async () => {
  if (!email || !password || !confirmPassword || !companyName || !contactName) {
- Alert.alert('Error', 'Please fill in all required fields');
- return;
+  Alert.alert('Error', 'Please fill in all required fields');
+  return;
  }
 
  if (password !== confirmPassword) {
- Alert.alert('Error', 'Passwords do not match');
- return;
+  Alert.alert('Error', 'Passwords do not match');
+  return;
  }
 
  setLoading(true);
  try {
- // Sign up the user
- const { data, error } = await authService.signUp(email, password);
- if (error) throw error;
+  // Sign up the user
+  const { data, error } = await authService.signUp(email, password);
+  if (error) throw error;
 
- // Create the client (GC) record
- const client = await clientService.createClient(companyName, contactName, email);
+  // Create the client (GC) record
+  const client = await clientService.createClient(companyName, contactName, email);
 
- // Create project if provided
- if (projectName && client) {
- await projectService.createProject(client.id, projectName);
- }
+  // Create project if provided
+  if (projectName && client) {
+   await projectService.createProject(client.id, projectName);
+  }
 
- // Auto-login after signup (for testing - remove in production)
- try {
- await authService.signIn(email, password);
- router.replace('/');
- } catch (loginError) {
- // If auto-login fails, redirect to login
- Alert.alert('Account created!', 'Please sign in to continue.', [
- { text: 'OK', onPress: () => router.replace('/login') }
- ]);
- }
+  setLoading(false);
+  // Just redirect to login - user needs to confirm email first
+  Alert.alert('Success!', 'Check your email to verify your account, then sign in.', [
+   { text: 'OK', onPress: () => router.replace('/login') }
+  ]);
  } catch (error) {
- Alert.alert('Sign Up Failed', error.message);
- } finally {
- setLoading(false);
+  Alert.alert('Sign Up Failed', error.message);
+  setLoading(false);
  }
- };
-
+};
  return (
  <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
  <ScrollView contentContainerStyle={styles.scrollContent}>
