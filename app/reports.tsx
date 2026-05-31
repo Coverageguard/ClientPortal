@@ -250,6 +250,9 @@ export default function ReportsScreen() {
 ) : (
   <Text style={styles.emptyText}>No reports</Text>
 )}
+) : (
+  <Text style={styles.emptyText}>No reports</Text>
+)}
       </ScrollView>
 
       {selectedSub && (
@@ -359,4 +362,9 @@ reportSubConfirm: { fontSize: 11, color: '#22c55e', fontWeight: '600' },
   reportSubRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
   reportSubName: { fontSize: 14, fontWeight: '500' },
   reportSubStatus: { fontSize: 12, fontWeight: '600' },
+reportSubCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: '#e2e8f0' },
+reportSubHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+reportSubDetails: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+reportSubDetail: { fontSize: 12, color: '#666' },
+reportSubConfirm: { fontSize: 11, color: '#22c55e', fontWeight: '600' },
 });
