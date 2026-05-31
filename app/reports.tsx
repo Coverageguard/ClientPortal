@@ -227,24 +227,29 @@ export default function ReportsScreen() {
         <View style={styles.divider} />
 
         <Text style={styles.sectionTitle}>Coverage Reports</Text>
-        <Text style={styles.subtitle}>View your verification results</Text>
 
-        {subcontractors.length > 0 && (
-          <TouchableOpacity style={styles.reportCard} onPress={() => { console.log('Report tapped'); setSelectedReport(subcontractors); }}>
-            <View style={styles.reportHeader}>
-              <View style={styles.logoCircle}>
-                <Text style={styles.logoText}>CG</Text>
-              </View>
-              <View style={styles.reportInfo}>
-                <Text style={styles.reportTitle}>Coverage Report</Text>
-                <Text style={styles.reportDate}>{new Date().toISOString().split('T')[0]}</Text>
-              </View>
-            </View>
-            <Text style={styles.projectName}>All Projects</Text>
-            <Text style={styles.subCount}>{subcontractors.length} subcontractor{subcontractors.length !== 1 ? 's' : ''}</Text>
-            <Text style={styles.tapHint}>Tap to view details →</Text>
-          </TouchableOpacity>
+{subcontractors.length > 0 ? (
+  subcontractors.map((sub) => (
+    <TouchableOpacity key={sub.id} style={styles.reportSubCard} onPress={() => handleAction(sub)}>
+      <View style={styles.reportSubHeader}>
+        <Text style={styles.reportSubName}>{sub.name}</Text>
+        <Text style={[styles.reportSubStatusBadge, { color: getStatusColor(sub.status) }]}>
+          {getStatusLabel(sub.status)}
+        </Text>
+      </View>
+      <View style={styles.reportSubDetails}>
+        <Text style={styles.reportSubDetail}>
+          {sub.lastVerified ? `Verified: ${sub.lastVerified}` : 'Awaiting verification'}
+        </Text>
+        {sub.verification_status === 'VERIFIED' && (
+          <Text style={styles.reportSubConfirm}>✓ Coverage Active</Text>
         )}
+      </View>
+    </TouchableOpacity>
+  ))
+) : (
+  <Text style={styles.emptyText}>No reports</Text>
+)}
       </ScrollView>
 
       {selectedSub && (
@@ -336,6 +341,11 @@ const styles = StyleSheet.create({
   reportInfo: { flex: 1 },
   reportTitle: { fontSize: 16, fontWeight: '600', color: '#1a365d' },
   reportDate: { fontSize: 12, color: '#666' },
+reportSubCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: '#e2e8f0' },
+reportSubHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+reportSubDetails: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+reportSubDetail: { fontSize: 12, color: '#666' },
+reportSubConfirm: { fontSize: 11, color: '#22c55e', fontWeight: '600' },
   projectName: { fontSize: 14, fontWeight: '500', color: '#333', marginBottom: 4 },
   subCount: { fontSize: 12, color: '#007AFF' },
   tapHint: { fontSize: 11, color: '#007AFF', marginTop: 8 },
