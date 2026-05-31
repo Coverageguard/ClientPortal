@@ -228,26 +228,30 @@ export default function ReportsScreen() {
 
         <Text style={styles.sectionTitle}>Coverage Reports</Text>
 
-{subcontractors.length > 0 ? (
-  subcontractors.map((sub) => (
-    <TouchableOpacity key={sub.id} style={styles.reportSubCard} onPress={() => handleAction(sub)}>
-      <View style={styles.reportSubHeader}>
-        <Text style={styles.reportSubName}>{sub.name}</Text>
-        <Text style={[styles.reportSubStatusBadge, { color: getStatusColor(sub.status) }]}>
-          {getStatusLabel(sub.status)}
-        </Text>
-      </View>
-      <View style={styles.reportSubDetails}>
-        <Text style={styles.reportSubDetail}>
-          {sub.lastVerified ? `Verified: ${sub.lastVerified}` : 'Awaiting verification'}
-        </Text>
-        {sub.verification_status === 'VERIFIED' && (
-          <Text style={styles.reportSubConfirm}>✓ Coverage Active</Text>
-        )}
-      </View>
-    </TouchableOpacity>
-  ))
-) : (
+<View style={styles.reportsList}>
+  {subcontractors.length > 0 ? (
+    subcontractors.map((sub) => (
+      <TouchableOpacity key={sub.id} style={styles.reportSubCard} onPress={() => handleAction(sub)}>
+        <View style={styles.reportSubHeader}>
+          <Text style={styles.reportSubName}>{sub.name}</Text>
+          <Text style={[styles.reportSubStatusBadge, { color: getStatusColor(sub.status) }]}>
+            {getStatusLabel(sub.status)}
+          </Text>
+        </View>
+        <View style={styles.reportSubDetails}>
+          <Text style={styles.reportSubDetail}>
+            {sub.lastVerified ? `Verified: ${sub.lastVerified}` : 'Awaiting verification'}
+          </Text>
+          {sub.verification_status === 'VERIFIED' && (
+            <Text style={styles.reportSubConfirm}>✓ Coverage Active</Text>
+          )}
+        </View>
+      </TouchableOpacity>
+    ))
+  ) : (
+    <Text style={styles.emptyText}>No reports</Text>
+  )}
+</View>
   <Text style={styles.emptyText}>No reports</Text>
 )}
 ) : (
