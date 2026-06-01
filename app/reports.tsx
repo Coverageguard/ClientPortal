@@ -89,8 +89,32 @@ export default function ReportsScreen() {
         </View>
         <View style={styles.divider} />
         <Text style={styles.sectionTitle}>Coverage Reports</Text>
-        <Text style={styles.subtitle}>View your verification results</Text>
-        {subcontractors.length > 0 && (<TouchableOpacity style={styles.reportCard} onPress={() => handleAction(subcontractors[0])}><View style={styles.reportHeader}><View style={styles.logoCircle}><Text style={styles.logoText}>CG</Text></View><View style={styles.reportInfo}><Text style={styles.reportTitle}>Coverage Report</Text><Text style={styles.reportDate}>{new Date().toISOString().split('T')[0]}</Text></View></View><Text style={styles.projectName}>All Projects</Text><Text style={styles.subCount}>{subcontractors.length} subcontractor{subcontractors.length !== 1 ? 's' : ''}</Text></TouchableOpacity>)}
+<Text style={styles.subtitle}>View your verification results</Text>
+{subcontractors.length > 0 ? (
+  subcontractors.map(sub => (
+    <TouchableOpacity key={sub.id} style={styles.reportCard} onPress={() => handleAction(sub)}>
+      <View style={styles.reportHeader}>
+        <View style={styles.logoCircle}>
+          <Text style={styles.logoText}>CG</Text>
+        </View>
+        <View style={styles.reportInfo}>
+          <Text style={styles.reportTitle}>{sub.name}</Text>
+          <Text style={styles.reportDate}>{new Date().toISOString().split('T')[0]}</Text>
+        </View>
+      </View>
+      <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center'}}>
+        <Text style={styles.projectName}>All Projects</Text>
+        <View style={[styles.statusBadge, {backgroundColor: getStatusColor(sub.status) + '20', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12}]}>
+          <Text style={{color: getStatusColor(sub.status), fontSize: 10, fontWeight: '600'}}>{getStatusLabel(sub.status)}</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  ))
+) : (
+  <View style={{padding: 20, alignItems: 'center'}}>
+    <Text style={{color: '#666'}}>No reports yet</Text>
+  </View>
+)}
       </ScrollView>
 {selectedSub && (
         <Modal visible={selectedSub !== null} animationType="slide">
